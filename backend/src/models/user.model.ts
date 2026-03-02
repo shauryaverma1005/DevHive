@@ -36,7 +36,8 @@ const userSchema = new Schema<IUser>({
     password: {
         type: String,
         required: [true, "Password is required"],
-        trim: true
+        trim: true,
+        select: false
     },
     refreshToken: {
         type:String,
@@ -74,26 +75,39 @@ userSchema.methods.isPasswordCorrect = async function (password: string) {
 };
 
 userSchema.methods.generateAccessToken = function(){
+    const accessTokenKey = process.env.ACCESS_TOKEN_KEY;
+    const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY;
+    
+    if(!accessTokenKey || !accessTokenExpiry){
+        throw new Error(`Access token enviroment variables are missing`);
+    }
+    
     return jwt.sign(
         {
             _id: this._id
         },
-        process.env.ACCESS_TOKEN_KEY as string,
+        accessTokenKey,
         {
-            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
+            expiresIn: accessTokenExpiry,
         }
     )
 }
 
 userSchema.methods.generateRefreshToken = function(){
+    const refreshTokenKey: string | undefined = process.env.REFRESH_TOKEN_KEY;
+    const refreshTokenExpiry: string | undefined = process.env.REFRESH_TOKEN_EXPIRY;
+
+    if(!refreshTokenExpiry || !refreshTokenKey){
+        throw new Error(`Refresh Token enviroment variables are not present`);
+    }
     return jwt.sign(
         {
             _id: this._id,
             email: this.email
         },
-            process.env.REFRESH_TOKEN_KEY as string,
+            refreshTokenKey,
         {
-            expiresIn: process.env.REFRESH_TOKEN_EXPIRY
+            expiresIn: refreshTokenExpiry
         }
     );
 }
