@@ -5,6 +5,26 @@ import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
 import { ApiError } from "../utils/ApiError";
 
+interface TokenPair {
+    accessToken: string,
+    refreshToken: string
+}
+
+const generateAccessAndRefreshToken = async (userId: string): Promise<TokenPair> => {
+    const user = await User.findById(userId)
+
+    if(!user){
+        throw new ApiError(400, `User with this userID does not exist`)
+    }
+
+    const accessToken = user.generateAccessToken();
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
+    await user.save({validateBeforeSave: false})
+
+    return {accessToken, refreshToken};
+}
+
 const register = asyncHandler(async(req: Request, res: Response) => {
     const {fullName, email, password} = req.body;
     
@@ -37,3 +57,5 @@ const register = asyncHandler(async(req: Request, res: Response) => {
     // return user
 
 })
+
+export {generateAccessAndRefreshToken, register}
