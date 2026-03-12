@@ -10,7 +10,7 @@ interface TokenPair {
     refreshToken: string
 }
 
-const generateAccessAndRefreshToken = async (userId: string): Promise<TokenPair> => {
+const generateAccessAndRefreshToken = async (userId: mongoose.Types.ObjectId | string): Promise<TokenPair> => {
     const user = await User.findById(userId)
 
     if(!user){
@@ -38,8 +38,8 @@ const register = asyncHandler(async(req: Request, res: Response) => {
 
     const existingUser = await User.findOne({email})
 
-    if(!existingUser){
-        throw new ApiError(401, "User with email already exist");
+    if(existingUser){
+        throw new ApiError(409, "User with email already exist");
     }
 
     const newUser = await User.create({
@@ -50,11 +50,24 @@ const register = asyncHandler(async(req: Request, res: Response) => {
 
     const user = await User.findById(newUser._id).select("-password -refreshToken")
 
+    if(!user){
+        throw new ApiError(500, "Error registering new User");
+    }
 
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id);
 
-    //Add cookies such as refreshToken and accessToken for  authentication using cookie parser
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development",
+        sameSite: "lax" as const
+    }
 
-    // return user
+    res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(200, "User Registered successfully", user)
+    )
 
 })
 
