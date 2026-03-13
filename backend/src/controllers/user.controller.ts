@@ -71,4 +71,41 @@ const register = asyncHandler(async(req: Request, res: Response) => {
 
 })
 
-export {generateAccessAndRefreshToken, register}
+const login = asyncHandler(async (req: Request, res: Response)=> {
+    const {email, password} = req.body;
+
+    if(!(email && password)){
+        throw new ApiError(400, "All fields are required");
+    }
+
+    const user = await User.findOne({email}).select("+password");
+
+    if(!user) {
+        throw new ApiError(404, "User with this email does not exist");
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(password);
+
+    if(!isPasswordCorrect){
+        throw new ApiError(400, "Email or password is not correct");
+    }
+
+    const loginUser = await User.findById(user._id).select("-password -refreshToken");
+
+    const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
+    
+    const options = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development",
+        sameSite: "lax" as const
+    }
+
+    res.status(200)
+    .cookie("accessToken", accessToken, options)
+    .cookie("refreshToken", refreshToken, options)
+    .json(
+        new ApiResponse(200, "Login successful", loginUser)
+    )
+})
+
+export {generateAccessAndRefreshToken, register, login}

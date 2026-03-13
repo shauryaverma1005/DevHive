@@ -19,6 +19,10 @@ app.use(express.urlencoded({extended: true, limit: "16kb"}))
 app.use(express.json({limit: "16kb"}))
 app.use(cookieParser())
 
+import userRoute from "./routes/user.routes"
+
+app.use("/api/v1/users", userRoute);
+
 // Error Handler middleware
 app.use(errorHandler);
 export {app}
