@@ -1,6 +1,6 @@
 import mongoose, {Schema, Document, Model} from "mongoose";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export interface IUser extends Document {
     fullName: string;
@@ -76,26 +76,28 @@ userSchema.methods.isPasswordCorrect = async function (password: string) {
 
 userSchema.methods.generateAccessToken = function(){
     const accessTokenKey = process.env.ACCESS_TOKEN_KEY;
-    const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY;
+    const accessTokenExpiry = process.env.ACCESS_TOKEN_EXPIRY as jwt.SignOptions["expiresIn"];
     
     if(!accessTokenKey || !accessTokenExpiry){
         throw new Error(`Access token enviroment variables are missing`);
     }
     
+    const options: jwt.SignOptions = {
+        expiresIn: accessTokenExpiry,
+    };
+
     return jwt.sign(
         {
             _id: this._id
         },
         accessTokenKey,
-        {
-            expiresIn: accessTokenExpiry,
-        }
+        options
     )
 }
 
 userSchema.methods.generateRefreshToken = function(){
     const refreshTokenKey: string | undefined = process.env.REFRESH_TOKEN_KEY;
-    const refreshTokenExpiry: string | undefined = process.env.REFRESH_TOKEN_EXPIRY;
+    const refreshTokenExpiry = process.env.REFRESH_TOKEN_EXPIRY as jwt.SignOptions["expiresIn"];
 
     if(!refreshTokenExpiry || !refreshTokenKey){
         throw new Error(`Refresh Token enviroment variables are not present`);
