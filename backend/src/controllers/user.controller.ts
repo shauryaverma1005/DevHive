@@ -1,9 +1,10 @@
 import mongoose from "mongoose";
-import { Request, Response } from "express";
+import { Request, Response, CookieOptions } from "express";
 import {User} from "../models/user.model";
 import { asyncHandler } from "../utils/asyncHandler";
 import { ApiResponse } from "../utils/ApiResponse";
 import { ApiError } from "../utils/ApiError";
+import jwt, { Secret } from "jsonwebtoken";
 
 interface TokenPair {
     accessToken: string,
@@ -108,4 +109,31 @@ const login = asyncHandler(async (req: Request, res: Response)=> {
     )
 })
 
-export {generateAccessAndRefreshToken, register, login}
+const logout = asyncHandler(async (req: Request, res: Response)=> {
+
+    if(!req.user?._id){
+        throw new ApiError(400, "Unauthorized User");
+    }
+
+   await User.findByIdAndUpdate(
+    req.user._id,
+    {
+        $unset: {refreshToken: ""}
+    },
+    {new: true}
+    )
+
+    const options: CookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV !== "development"
+    }
+
+    res.status(200)
+    .clearCookie("accessToken", options)
+    .clearCookie("refreshToken", options)
+    .json(
+        new ApiResponse(200, "User logout successfully", "")
+    )
+});
+
+export {generateAccessAndRefreshToken, register, login, logout}
