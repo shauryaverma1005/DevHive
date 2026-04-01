@@ -21,7 +21,7 @@ app.use(cookieParser())
 
 import userRoute from "./routes/user.routes"
 
-app.use("/api/v1/users", userRoute);
+app.use("/api/v1/user", userRoute);
 
 // Error Handler middleware
 app.use(errorHandler);
